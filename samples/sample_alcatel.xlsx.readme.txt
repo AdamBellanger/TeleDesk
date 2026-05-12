@@ -1,0 +1,10 @@
+Placer ici un fichier Excel Alcatel-Lucent exporté depuis le dashboard.
+Colonnes attendues (ordre libre) :
+
+  EDN | Catégorie | Type | Interface | État physique | État logique
+  Utilisateur distant | Hot Desking | Numéro matériel | Version logicielle | ID | Adresse IP
+
+Exemple de lignes :
+  100 | Phone | 4038 EE | IP  | In service | Registered | john.doe | Non | 3C:41:0E:xx | R6.2 | 00:11:22:33:44:55 | 192.168.1.10
+  200 | Phone | Analogic| Z   | In service | Registered |          | Non | 3C:41:0F:xx | R6.2 |                   |
+  300 | AOM   | Add-On 10| -  | In service | Registered |          | Non | 3C:41:10:xx | R6.2 |                   |

@@ -1,0 +1,281 @@
+"""
+Backend Flask — sert l'API consommée par le frontend React.
+Tourne sur localhost:7421, lancé par gui_app.py via threading.
+"""
+
+import logging
+import os
+import queue
+import subprocess
+import sys
+import threading
+from pathlib import Path
+
+import yaml
+from dotenv import load_dotenv
+from flask import Flask, jsonify, request, send_from_directory
+
+sys.path.insert(0, str(Path(__file__).parent))
+from bobdesk_client import BobDeskClient
+from dedup import DuplicateDetector
+from excel_reader import read_alcatel_excel
+from fibre_mapper import FibreMapper
+from fibre_reader import read_fibre_excel
+from main import detect_import_type, resolve_client, run_import
+from mapper import AlcatelMapper
+from referential import load_referential
+from reporter import ImportReporter
+from unyc_mapper import UnycMapper
+from unyc_reader import read_unyc_excel
+
+# ── Chemins ───────────────────────────────────────────────────────────────
+_BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
+CONFIG_PATH = _BASE / "config" / "mapping.yaml"
+
+_APPDATA = Path(os.environ.get("APPDATA", Path.home())) / "TeleDesk"
+_APPDATA.mkdir(parents=True, exist_ok=True)
+ENV_PATH = _APPDATA / ".env"
+
+_template = _BASE / "config" / ".env"
+if not ENV_PATH.exists() and _template.exists():
+    import shutil
+    shutil.copy(_template, ENV_PATH)
+
+load_dotenv(dotenv_path=ENV_PATH, override=True)
+
+import shutil as _shutil
+IMAGES_DIR = _APPDATA / "images"
+IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+_embedded = _BASE / "images"
+if _embedded.is_dir():
+    for _img in _embedded.iterdir():
+        _dest = IMAGES_DIR / _img.name
+        if not _dest.exists():
+            _shutil.copy(_img, _dest)
+
+# ── État global de l'import ───────────────────────────────────────────────
+_log_queue: queue.Queue = queue.Queue()
+_import_done  = False
+_import_error = ""
+_import_stats: dict = {}
+
+DIST = _BASE / "frontend_dist"
+app = Flask(__name__, static_folder=str(DIST), static_url_path="")
+log = logging.getLogger("werkzeug")
+log.setLevel(logging.ERROR)
+
+
+# ── Logging vers la queue ─────────────────────────────────────────────────
+class _QueueHandler(logging.Handler):
+    def emit(self, record):
+        fmt = logging.Formatter("%(asctime)s  %(levelname)-8s  %(message)s",
+                                datefmt="%H:%M:%S").format(record)
+        _log_queue.put(fmt)
+
+
+_qh = _QueueHandler()
+logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().addHandler(_qh)
+
+
+# ── Routes ────────────────────────────────────────────────────────────────
+
+@app.get("/")
+def index():
+    return send_from_directory(str(DIST), "index.html")
+
+@app.get("/api/init")
+def api_init():
+    return jsonify({
+        "email":      os.getenv("BOBDESK_EMAIL", ""),
+        "images_dir": str(IMAGES_DIR),
+    })
+
+
+@app.get("/api/credentials")
+def api_credentials():
+    return jsonify({
+        "email":    os.getenv("BOBDESK_EMAIL", ""),
+        "password": os.getenv("BOBDESK_PASSWORD", ""),
+    })
+
+
+@app.post("/api/save_credentials")
+def api_save_credentials():
+    data     = request.json
+    email    = data.get("email", "").strip()
+    password = data.get("password", "").strip()
+    iface    = os.getenv("BOBDESK_INTERFACE_ID", "")
+
+    try:
+        BobDeskClient(
+            base_url=os.getenv("BOBDESK_BASE_URL", "https://prod-api.bob-desk.com/api"),
+            email=email, password=password, interface_id=iface, timeout=10,
+        )
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)})
+
+    env_lines = ENV_PATH.read_text(encoding="utf-8").splitlines()
+    updates = {"BOBDESK_EMAIL": email, "BOBDESK_PASSWORD": password}
+    new_lines, written = [], set()
+    for line in env_lines:
+        key = line.split("=")[0].strip()
+        if key in updates:
+            new_lines.append(f"{key}={updates[key]}")
+            written.add(key)
+        else:
+            new_lines.append(line)
+    for k, v in updates.items():
+        if k not in written:
+            new_lines.append(f"{k}={v}")
+    ENV_PATH.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+    os.environ["BOBDESK_EMAIL"]    = email
+    os.environ["BOBDESK_PASSWORD"] = password
+    return jsonify({"ok": True})
+
+
+
+@app.post("/api/detect_type")
+def api_detect_type():
+    path = request.json.get("path", "")
+    return jsonify({"type": detect_import_type(path)})
+
+
+@app.post("/api/start")
+def api_start():
+    global _import_done, _import_error, _import_stats
+    _import_done  = False
+    _import_error = ""
+    _import_stats = {}
+    while not _log_queue.empty():
+        try: _log_queue.get_nowait()
+        except: pass
+
+    data      = request.json
+    file_path = data["file"]
+    client    = data["client"]
+    dry_run   = data.get("dry_run", False)
+    operator  = data.get("operator", "Orange")
+    file_type = data.get("file_type", "alcatel")
+
+    threading.Thread(
+        target=_worker,
+        args=(file_path, client, dry_run, operator, file_type),
+        daemon=True,
+    ).start()
+    return jsonify({"ok": True})
+
+
+@app.post("/api/set_on_top")
+def api_set_on_top():
+    # Implémenté côté gui_app via js_api si besoin
+    return jsonify({"ok": True})
+
+
+@app.get("/api/logs")
+def api_logs():
+    global _import_done, _import_error
+    lines = []
+    while True:
+        try: lines.append(_log_queue.get_nowait())
+        except queue.Empty: break
+    return jsonify({
+        "lines": lines,
+        "done":  _import_done,
+        "error": _import_error or None,
+    })
+
+
+@app.get("/api/stats")
+def api_stats():
+    return jsonify(_import_stats or {
+        "imported": "—", "skipped_duplicate": "—",
+        "skipped_unmappable": "—", "error": "—",
+    })
+
+
+@app.get("/api/open_images")
+def api_open_images():
+    IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    subprocess.Popen(["explorer", str(IMAGES_DIR)])
+    return jsonify({"ok": True})
+
+
+# ── Worker import ─────────────────────────────────────────────────────────
+
+def _worker(excel_path, client_name, dry_run, operator, file_type):
+    global _import_done, _import_error, _import_stats
+    logger = logging.getLogger("import")
+    try:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            cfg = yaml.safe_load(f)
+
+        bob = BobDeskClient(
+            base_url=os.getenv("BOBDESK_BASE_URL", "https://prod-api.bob-desk.com/api"),
+            email=os.getenv("BOBDESK_EMAIL", ""),
+            password=os.getenv("BOBDESK_PASSWORD", ""),
+            interface_id=os.getenv("BOBDESK_INTERFACE_ID", ""),
+            timeout=int(os.getenv("HTTP_TIMEOUT", "30")),
+            dry_run=dry_run,
+        )
+
+        if dry_run:
+            logger.info("━" * 50)
+            logger.info("MODE DRY-RUN — aucune écriture dans Bob! Desk")
+            logger.info("━" * 50)
+
+        rec    = resolve_client(bob, client_name, None)
+        cid    = rec["_id"]
+        clabel = rec.get("name", cid)
+        logger.info("Client : %s", clabel)
+
+        ref = load_referential(bob, cfg)
+
+        if file_type == "unyc":
+            logger.info("Type : Unyc / Centrex")
+            rows   = read_unyc_excel(excel_path)
+            mapper = UnycMapper(cfg, ref)
+            dd_keys = ["mac", "name"]
+        elif file_type == "fibre":
+            logger.info("Type : Liens Fibre")
+            rows   = read_fibre_excel(excel_path)
+            mapper = FibreMapper(operator)
+            dd_keys = ["serial"]
+        else:
+            logger.info("Type : Alcatel-Lucent")
+            rows   = read_alcatel_excel(excel_path)
+            mapper = AlcatelMapper(cfg, ref)
+            dd_keys = cfg.get("dedup_keys", ["serial"])
+
+        loc = bob.get_client_location(cid)
+        ex  = bob.get_client_equipments(cid)
+        dd  = DuplicateDetector(ex, dd_keys)
+
+        rdir     = os.getenv("REPORT_DIR", str(Path(__file__).parent / "reports"))
+        reporter = ImportReporter(rdir, clabel.replace(" ", "_"), dry_run)
+
+        run_import(rows, mapper, dd, bob, cid, loc, reporter, IMAGES_DIR if IMAGES_DIR.is_dir() else None)
+
+        reporter.print_summary()
+        reporter.save_csv()
+        reporter.save_json()
+
+        counts = {}
+        for r in reporter.results:
+            counts[r.status] = counts.get(r.status, 0) + 1
+        _import_stats = {
+            "imported":           counts.get("imported", 0),
+            "skipped_duplicate":  counts.get("skipped_duplicate", 0),
+            "skipped_unmappable": counts.get("skipped_unmappable", 0),
+            "error":              counts.get("error", 0),
+        }
+        _import_done = True
+
+    except Exception as exc:
+        logger.error("Erreur : %s", exc, exc_info=True)
+        _import_error = str(exc)
+        _import_done  = True
+
+
+def run(port=7421):
+    app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)

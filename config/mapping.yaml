@@ -1,0 +1,127 @@
+# =============================================================================
+# Mapping Alcatel-Lucent -> Bob! Desk
+# IDs à adapter selon votre instance Bob! Desk
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Référentiels Bob! Desk (IDs réels récupérés via API)
+# ---------------------------------------------------------------------------
+bobdesk_ids:
+  # Catégories d'équipements
+  categories:
+    "Téléphonie":        "6980b6558b3f890013b51402"
+    "Réseau":            "69a8566fdf8a4f00136f2e2c"
+    "ALIMENTATION":      "684a9320000c5914aedc2c90"
+    "Contrôle d'accès":  "683ec14ac50d700018cb67c4"
+    "Interphone IP":     "683eba2dc7b5d300125266e3"
+    "Alarme":            "683eb269ba024400110b5878"
+    "Serveur video":     "683eb21d3e53c0001925ca6f"
+    "Camera":            "683eb1f03ed3af001255ea0b"
+    "Switch":            "683e9f194702ce0019379e45"
+
+  # Sous-catégories Téléphonie (parent: 6980b6558b3f890013b51402)
+  subcategories:
+    "Téléphone IP":        "69c2a7cd336965001288858c"
+    "Téléphone Analogique": "69b16f9f645226001a7dccdf"
+    "SoftPhone":           "69b16a73d68e320019289bd1"
+    "Module de touches":   "69afd6d86d57751a808cfc9b"
+    "DECT":                "6980b6ba8b3f890013b5177a"
+    "Téléphone Numérique": "6980b6b0129f190019d26836"
+    "Téléphone Mobile":    "6a0321819bf84b0308fb58e4"
+
+  # Métiers (jobs) — visibilité des équipements dans Bob! Desk
+  jobs:
+    "Telephonie": "68357e413ad721001a9cfc23"
+    "Réseau":     "5ff2f3f5fa15ef0018f7ff9d"
+
+  # Champs personnalisés équipement (field sections)
+  custom_fields:
+    "Adresse MAC": "6839ac744f38870019aa1676"
+    "Adresse IP":  "6839ac96012e51001853fd83"
+
+# ---------------------------------------------------------------------------
+# Valeurs par défaut pour l'import Alcatel
+# ---------------------------------------------------------------------------
+defaults:
+  brand: "Alcatel-Lucent"
+  category: "Téléphonie"
+  job: "Telephonie"
+
+# ---------------------------------------------------------------------------
+# Valeurs par défaut pour l'import Unyc / Centrex
+# ---------------------------------------------------------------------------
+unyc_defaults:
+  subcategory: "Téléphone IP"
+
+# ---------------------------------------------------------------------------
+# Mapping Interface Alcatel -> Sous-catégorie Bob! Desk (prioritaire)
+# ---------------------------------------------------------------------------
+interface_to_subcategory:
+  "IP":  "Téléphone IP"
+  "Z":   "Téléphone Analogique"
+  "A":   "Téléphone Analogique"
+  "UA":  "Téléphone Numérique"
+
+# ---------------------------------------------------------------------------
+# Mapping Type Alcatel -> Sous-catégorie Bob! Desk
+# ---------------------------------------------------------------------------
+type_to_subcategory:
+  # Postes IP
+  "4008":           "Téléphone IP"
+  "4018":           "Téléphone IP"
+  "4028":           "Téléphone IP"
+  "4038":           "Téléphone IP"
+  "4058":           "Téléphone IP"
+  "4068":           "Téléphone IP"
+  "8018":           "Téléphone IP"
+  "8028":           "Téléphone IP"
+  "8038":           "Téléphone IP"
+  "8058":           "Téléphone IP"
+  "8068":           "Téléphone IP"
+  # Postes analogiques
+  "Analogic":       "Téléphone Analogique"
+  "Analog":         "Téléphone Analogique"
+  # Modules d'extension (AOM) -> Module de touches
+  "Add-On 10":      "Module de touches"
+  "Add-On 40":      "Module de touches"
+  "Add-On":         "Module de touches"
+  # Terminaux virtuels / outils -> SoftPhone ou null si non mappable
+  "Virtual Terminal":          "SoftPhone"
+  "Remote Access V34":         null
+  "Remote Access ISDN":        null
+  "Internal Voice Mail Unit":  null
+  "IVM":                       null
+
+# ---------------------------------------------------------------------------
+# Surcharge de catégorie par type Alcatel
+# ---------------------------------------------------------------------------
+alcatel_category_override:
+  "Phone":  "Téléphonie"
+  "AOM":    "Téléphonie"
+  "Tool":   "Téléphonie"
+  "Set":    "Téléphonie"
+
+# ---------------------------------------------------------------------------
+# Clés anti-doublon (dans l'ordre de priorité)
+# ---------------------------------------------------------------------------
+dedup_keys:
+  - "serial"        # = Numéro matériel Alcatel (champ Bob! Desk: serial)
+  - "mac_address"   # = ID Alcatel (champ personnalisé)
+  - "edn"           # = EDN Alcatel (dans le nom de l'équipement)
+
+# ---------------------------------------------------------------------------
+# Conversion des noms de modèles Alcatel -> noms lisibles dans Bob! Desk
+# Clé = regex sur la colonne Type, Valeur = nom affiché dans Bob! Desk
+# ---------------------------------------------------------------------------
+model_name_override:
+  "^Add-On 10":        "Module de touches 10"
+  "^Add-On 40":        "Module de touches 40"
+  "^Add-On":           "Module de touches"
+  "^Virtual Terminal": "Softphone"
+  "^Analogic":         "Poste Analogique"
+  "^Analog":           "Poste Analogique"
+
+# ---------------------------------------------------------------------------
+# Template de nom d'équipement
+# ---------------------------------------------------------------------------
+equipment_name_template: "{edn} - {model}"

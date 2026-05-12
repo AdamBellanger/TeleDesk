@@ -1,0 +1,10 @@
+pandas>=2.0
+openpyxl>=3.1
+xlrd>=2.0
+python-calamine
+pyyaml>=6.0
+python-dotenv>=1.0
+requests>=2.31
+flask>=3.1
+werkzeug>=3.1
+pywebview>=6.2

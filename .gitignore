@@ -1,0 +1,27 @@
+# ── Build / dist ──────────────────────────────────────────────────────────
+dist/
+build/
+*.spec.bak
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ── Frontend ───────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/.vite/
+frontend_dist/
+
+# ── Données sensibles ──────────────────────────────────────────────────────
+config/.env
+*.env
+!.env.example
+!config/.env.example
+
+# ── Données runtime (rapports, logs) ──────────────────────────────────────
+reports/
+logs/
+
+# ── Fichiers temporaires / OS ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.tmp
