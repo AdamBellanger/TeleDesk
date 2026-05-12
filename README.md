@@ -1,4 +1,4 @@
-# Import automatique Alcatel-Lucent → Bob! Desk
+# Import automatique Alcatel-Lucent / Unyc Atlas → Bob! Desk
 
 Script Python pour importer des équipements téléphoniques Alcatel depuis un export Excel
 vers la fiche client correspondante dans Bob! Desk, via l'API REST.
