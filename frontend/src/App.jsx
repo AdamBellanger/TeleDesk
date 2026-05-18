@@ -377,7 +377,7 @@ export default function App() {
         <div className="h-px" style={{ background: `linear-gradient(to right, transparent, var(--grad), transparent)` }} />
 
         {/* Logo */}
-        <div className="px-5 pt-6 pb-4">
+        <div className="px-5 pt-4 pb-3">
           <div className="text-base font-bold tracking-tight" style={{ color: 'var(--text)' }}>TéléDesk</div>
           <div className="text-[10px] mt-0.5 uppercase tracking-widest font-medium" style={{ color: 'var(--accent)' }}>
             {fileType === 'unyc' ? 'Unyc / Centrex' : fileType === 'fibre' ? 'Liens Fibre' : 'Alcatel & Unyc'}
@@ -387,7 +387,7 @@ export default function App() {
         <div className="mx-4 h-px" style={{ background: 'var(--border)' }} />
 
         {/* Client */}
-        <div className="px-4 mt-4 space-y-1.5">
+        <div className="px-4 mt-3 space-y-1">
           <label className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text3)' }}>Client</label>
           <input value={client} onChange={e => setClient(e.target.value)}
             placeholder="Nom exact ou partiel…"
@@ -397,7 +397,7 @@ export default function App() {
 
         {/* Opérateur fibre */}
         {fileType === 'fibre' && (
-          <div className="px-4 mt-3 space-y-1.5">
+          <div className="px-4 mt-2 space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text3)' }}>Opérateur</label>
             <select value={operator} onChange={e => setOperator(e.target.value)}
               className="w-full rounded-lg px-3 py-2 text-sm border focus:outline-none cursor-pointer transition-colors"
@@ -407,12 +407,12 @@ export default function App() {
           </div>
         )}
 
-        <div className="mx-4 mt-4 h-px" style={{ background: 'var(--border)' }} />
+        <div className="mx-4 mt-3 h-px" style={{ background: 'var(--border)' }} />
 
         {/* Mode remplacer — visible uniquement après chargement d'un fichier */}
         {file && (
-          <div className="px-4 mt-3">
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors duration-200"
+          <div className="px-4 mt-2">
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg border transition-colors duration-200"
               style={{ background: replace ? 'color-mix(in srgb, #ef4444 8%, var(--card))' : 'var(--card)', borderColor: replace ? '#ef444440' : 'var(--border)' }}>
               <div>
                 <div className="text-xs font-medium" style={{ color: replace ? '#f87171' : 'var(--text2)' }}>
@@ -429,7 +429,7 @@ export default function App() {
 
         {/* Paramètres */}
         <button onClick={() => setShowSettings(true)}
-          className="mx-4 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg border border-transparent transition-all cursor-pointer group text-left"
+          className="mx-4 mt-2 flex items-center gap-2 px-3 py-2 rounded-lg border border-transparent transition-all cursor-pointer group text-left"
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--card)'; e.currentTarget.style.borderColor = 'var(--border)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent' }}>
           <span className="w-1.5 h-1.5 rounded-full shrink-0 transition-colors"
@@ -441,10 +441,10 @@ export default function App() {
           </svg>
         </button>
 
-        <div className="mx-4 mt-3 h-px" style={{ background: 'var(--border)' }} />
+        <div className="mx-4 mt-2 h-px" style={{ background: 'var(--border)' }} />
 
         {/* Bouton lancer */}
-        <div className="px-4 mt-3">
+        <div className="px-4 mt-2">
           <button onClick={launch} disabled={running}
             className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             style={{ background: 'var(--accent)' }}
@@ -499,11 +499,11 @@ export default function App() {
         {history.length > 0 && (
           <>
             <div className="mx-4 h-px" style={{ background: 'var(--border)' }} />
-            <div className="px-4 pt-3 pb-1">
-              <div className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--text3)' }}>Récents</div>
+            <div className="px-4 pt-2 pb-1">
+              <div className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text3)' }}>Récents</div>
               {history.map((h, i) => (
                 <button key={i} onClick={() => setClient(h.client)}
-                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-colors cursor-pointer text-left"
+                  className="w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors cursor-pointer text-left"
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--card)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <span className="text-[11px] truncate flex-1" style={{ color: 'var(--text2)' }}>{h.client}</span>
@@ -531,7 +531,7 @@ export default function App() {
           </div>
         </button>
 
-        <div className="text-center text-[10px] pb-3" style={{ color: 'var(--muted)' }}>socacom.fr · v2.0</div>
+        <div className="text-center text-[10px] pb-2" style={{ color: 'var(--muted)' }}>socacom.fr · v2.0</div>
       </aside>
 
       {/* ── MAIN ────────────────────────────────────────────────── */}

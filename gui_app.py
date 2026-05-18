@@ -40,9 +40,9 @@ api_obj = Api()
 window = webview.create_window(
     "TéléDesk Import",
     url="http://127.0.0.1:7421/",
-    width=1100,
-    height=700,
-    min_size=(900, 600),
+    width=1200,
+    height=780,
+    min_size=(1000, 680),
     resizable=True,
     js_api=api_obj,
 )
