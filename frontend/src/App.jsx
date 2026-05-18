@@ -362,6 +362,24 @@ export default function App() {
 
         <div className="mx-4 mt-4 h-px" style={{ background: 'var(--border)' }} />
 
+        {/* Mode remplacer — visible uniquement après chargement d'un fichier */}
+        {file && (
+          <div className="px-4 mt-3">
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors duration-200"
+              style={{ background: replace ? 'color-mix(in srgb, #ef4444 8%, var(--card))' : 'var(--card)', borderColor: replace ? '#ef444440' : 'var(--border)' }}>
+              <div>
+                <div className="text-xs font-medium" style={{ color: replace ? '#f87171' : 'var(--text2)' }}>
+                  🗑 Remplacer les équipements
+                </div>
+                <div className="text-[10px] mt-0.5" style={{ color: 'var(--text3)' }}>
+                  Supprime les existants avant import
+                </div>
+              </div>
+              <Toggle checked={replace} onChange={setReplace} />
+            </div>
+          </div>
+        )}
+
         {/* Paramètres */}
         <button onClick={() => setShowSettings(true)}
           className="mx-4 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg border border-transparent transition-all cursor-pointer group text-left"
@@ -375,22 +393,6 @@ export default function App() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
-
-        {/* Mode remplacer */}
-        <div className="px-4 mt-3">
-          <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors duration-200"
-            style={{ background: replace ? 'color-mix(in srgb, #ef4444 8%, var(--card))' : 'var(--card)', borderColor: replace ? '#ef444440' : 'var(--border)' }}>
-            <div>
-              <div className="text-xs font-medium" style={{ color: replace ? '#f87171' : 'var(--text2)' }}>
-                🗑 Remplacer les équipements
-              </div>
-              <div className="text-[10px] mt-0.5" style={{ color: 'var(--text3)' }}>
-                Supprime les existants avant import
-              </div>
-            </div>
-            <Toggle checked={replace} onChange={setReplace} />
-          </div>
-        </div>
 
         <div className="mx-4 mt-3 h-px" style={{ background: 'var(--border)' }} />
 
@@ -439,7 +441,7 @@ export default function App() {
           </div>
         </button>
 
-        <div className="text-center text-[10px] pb-3" style={{ color: 'var(--muted)' }}>socacom.fr · v1.0</div>
+        <div className="text-center text-[10px] pb-3" style={{ color: 'var(--muted)' }}>socacom.fr · v2.0</div>
       </aside>
 
       {/* ── MAIN ────────────────────────────────────────────────── */}
