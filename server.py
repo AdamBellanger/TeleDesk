@@ -251,7 +251,7 @@ def _worker(excel_path, client_name, dry_run, operator, file_type):
         ex  = bob.get_client_equipments(cid)
         dd  = DuplicateDetector(ex, dd_keys)
 
-        rdir     = os.getenv("REPORT_DIR", str(Path(__file__).parent / "reports"))
+        rdir     = os.getenv("REPORT_DIR", str(_APPDATA / "reports"))
         reporter = ImportReporter(rdir, clabel.replace(" ", "_"), dry_run)
 
         run_import(rows, mapper, dd, bob, cid, loc, reporter, IMAGES_DIR if IMAGES_DIR.is_dir() else None)
