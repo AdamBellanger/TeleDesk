@@ -255,6 +255,7 @@ export default function App() {
   const [operator, setOperator] = useState('Orange')
   const [dryRun, setDryRun]     = useState(false)
   const [running, setRunning]   = useState(false)
+  const [replace, setReplace]   = useState(false)
   const [logs, setLogs]         = useState([])
   const [showLog, setShowLog]   = useState(true)
   const [stats, setStats]       = useState({ imported: '—', skipped_duplicate: '—', skipped_unmappable: '—', error: '—' })
@@ -313,7 +314,7 @@ export default function App() {
     setRunning(true); setProgress(true)
     setStats({ imported: '—', skipped_duplicate: '—', skipped_unmappable: '—', error: '—' })
     setStatus({ text: 'Connexion à Bob! Desk…', type: 'muted' })
-    await api('/start', { file, client, dry_run: dryRun, operator, file_type: fileType })
+    await api('/start', { file, client, dry_run: dryRun, operator, file_type: fileType, replace })
     pollLogs()
   }
 
@@ -374,6 +375,22 @@ export default function App() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
+
+        {/* Mode remplacer */}
+        <div className="px-4 mt-3">
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors duration-200"
+            style={{ background: replace ? 'color-mix(in srgb, #ef4444 8%, var(--card))' : 'var(--card)', borderColor: replace ? '#ef444440' : 'var(--border)' }}>
+            <div>
+              <div className="text-xs font-medium" style={{ color: replace ? '#f87171' : 'var(--text2)' }}>
+                🗑 Remplacer les équipements
+              </div>
+              <div className="text-[10px] mt-0.5" style={{ color: 'var(--text3)' }}>
+                Supprime les existants avant import
+              </div>
+            </div>
+            <Toggle checked={replace} onChange={setReplace} />
+          </div>
+        </div>
 
         <div className="mx-4 mt-3 h-px" style={{ background: 'var(--border)' }} />
 

@@ -192,6 +192,35 @@ class BobDeskClient:
             logger.debug("Upload image échoué pour %s : %s", equipment_id, exc)
             return False
 
-    def delete_equipment(self, equipment_id: str) -> dict:
-        """Utilisé uniquement pour les tests."""
-        return self._request("DELETE", f"/equipments/{equipment_id}")
+    def delete_equipment(self, equipment_id: str) -> bool:
+        if self.dry_run:
+            logger.info("[DRY-RUN] DELETE /equipments/%s", equipment_id)
+            return True
+        try:
+            self._request("DELETE", f"/equipments/{equipment_id}")
+            return True
+        except BobDeskAPIError as exc:
+            logger.warning("Suppression échouée %s : %s", equipment_id, exc)
+            return False
+
+    def delete_client_equipments_by_subcategories(
+        self, client_id: str, subcategory_ids: set[str]
+    ) -> int:
+        """Supprime tous les équipements du client dont la sous-catégorie est dans subcategory_ids.
+        Retourne le nombre d'équipements supprimés."""
+        equipments = self.get_client_equipments(client_id)
+        to_delete = []
+        for eq in equipments:
+            subcat = eq.get("_subcategory")
+            if isinstance(subcat, dict):
+                subcat = subcat.get("_id", "")
+            if subcat in subcategory_ids:
+                to_delete.append(eq["_id"])
+
+        logger.info("%d équipement(s) à supprimer avant import.", len(to_delete))
+        deleted = 0
+        for eq_id in to_delete:
+            if self.delete_equipment(eq_id):
+                deleted += 1
+        logger.info("%d équipement(s) supprimé(s).", deleted)
+        return deleted

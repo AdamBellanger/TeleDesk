@@ -157,10 +157,11 @@ def api_start():
     dry_run   = data.get("dry_run", False)
     operator  = data.get("operator", "Orange")
     file_type = data.get("file_type", "alcatel")
+    replace   = data.get("replace", False)
 
     threading.Thread(
         target=_worker,
-        args=(file_path, client, dry_run, operator, file_type),
+        args=(file_path, client, dry_run, operator, file_type, replace),
         daemon=True,
     ).start()
     return jsonify({"ok": True})
@@ -203,7 +204,30 @@ def api_open_images():
 
 # ── Worker import ─────────────────────────────────────────────────────────
 
-def _worker(excel_path, client_name, dry_run, operator, file_type):
+# Sous-catégories à supprimer selon le type de fichier
+_SUBCATS_TO_DELETE = {
+    "alcatel": {
+        "69c2a7cd336965001288858c",  # Téléphone IP
+        "69b16f9f645226001a7dccdf",  # Téléphone Analogique
+        "6980b6b0129f190019d26836",  # Téléphone Numérique
+        "6980b6ba8b3f890013b5177a",  # DECT
+        "69afd6d86d57751a808cfc9b",  # Module de touches
+        "69b16a73d68e320019289bd1",  # SoftPhone
+    },
+    "unyc": {
+        "69c2a7cd336965001288858c",  # Téléphone IP
+        "69b16a73d68e320019289bd1",  # SoftPhone
+        "6a0321819bf84b0308fb58e4",  # Téléphone Mobile
+    },
+    "fibre": {
+        "69fc57d6faa5740012e78a89",  # Fibre FTTH
+        "69fc57deabf911001a3e2d3c",  # Fibre FTTO
+        "69fc57e8abf911001a3e2dab",  # Fibre FTTO + GTR
+    },
+}
+
+
+def _worker(excel_path, client_name, dry_run, operator, file_type, replace=False):
     global _import_done, _import_error, _import_stats
     logger = logging.getLogger("import")
     try:
@@ -233,19 +257,27 @@ def _worker(excel_path, client_name, dry_run, operator, file_type):
 
         if file_type == "unyc":
             logger.info("Type : Unyc / Centrex")
-            rows   = read_unyc_excel(excel_path)
-            mapper = UnycMapper(cfg, ref)
+            rows    = read_unyc_excel(excel_path)
+            mapper  = UnycMapper(cfg, ref)
             dd_keys = ["mac", "name"]
         elif file_type == "fibre":
             logger.info("Type : Liens Fibre")
-            rows   = read_fibre_excel(excel_path)
-            mapper = FibreMapper(operator)
+            rows    = read_fibre_excel(excel_path)
+            mapper  = FibreMapper(operator)
             dd_keys = ["serial"]
         else:
             logger.info("Type : Alcatel-Lucent")
-            rows   = read_alcatel_excel(excel_path)
-            mapper = AlcatelMapper(cfg, ref)
+            rows    = read_alcatel_excel(excel_path)
+            mapper  = AlcatelMapper(cfg, ref)
             dd_keys = cfg.get("dedup_keys", ["serial"])
+
+        # Suppression préalable si mode Remplacer activé
+        if replace:
+            subcats = _SUBCATS_TO_DELETE.get(file_type, set())
+            logger.info("━" * 50)
+            logger.info("MODE REMPLACER — suppression des équipements existants (%s)", file_type)
+            bob.delete_client_equipments_by_subcategories(cid, subcats)
+            logger.info("━" * 50)
 
         loc = bob.get_client_location(cid)
         ex  = bob.get_client_equipments(cid)
