@@ -50,12 +50,28 @@ function Toggle({ checked, onChange }) {
 
 // ── LogLine ───────────────────────────────────────────────────────────────
 function LogLine({ line }) {
-  let cls = ''
   let style = { color: 'var(--text2)' }
-  if (/ERROR|Erreur/i.test(line))        style = { color: '#f87171' }
-  else if (/WARN/i.test(line))           style = { color: '#fbbf24' }
+  if (/ERROR|Erreur/i.test(line))         style = { color: '#f87171' }
+  else if (/WARN/i.test(line))            style = { color: '#fbbf24' }
   else if (/Terminé|importé/i.test(line)) style = { color: '#34d399' }
-  return <div className={`font-mono text-[11px] leading-5 whitespace-pre ${cls}`} style={style}>{line}</div>
+
+  if (/Suppression en cours/i.test(line)) {
+    const match = line.match(/\((\d+)\/(\d+)\)/)
+    const label = match ? `Suppression en cours… (${match[1]}/${match[2]})` : 'Suppression en cours…'
+    return (
+      <div className="font-mono text-[11px] leading-5 flex items-center gap-2" style={{ color: '#f87171' }}>
+        <span>{label}</span>
+        <span className="flex gap-0.5 items-center">
+          {[0,1,2].map(i => (
+            <span key={i} className="inline-block w-1 h-1 rounded-full bg-red-400 animate-bounce"
+              style={{ animationDelay: `${i * 150}ms` }} />
+          ))}
+        </span>
+      </div>
+    )
+  }
+
+  return <div className="font-mono text-[11px] leading-5 whitespace-pre" style={style}>{line}</div>
 }
 
 // ── DropZone ──────────────────────────────────────────────────────────────
@@ -255,6 +271,7 @@ export default function App() {
   const [operator, setOperator] = useState('Orange')
   const [dryRun, setDryRun]     = useState(false)
   const [running, setRunning]   = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [replace, setReplace]   = useState(false)
   const [logs, setLogs]         = useState([])
   const [showLog, setShowLog]   = useState(true)
@@ -290,10 +307,14 @@ export default function App() {
       if (res.lines?.length) {
         setLogs(prev => [...prev, ...res.lines])
         setTimeout(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight }, 50)
+        const isDeleting = res.lines.some(l => l.includes('Suppression en cours'))
+        const doneDeleting = res.lines.some(l => l.includes('supprimé(s)'))
+        if (isDeleting) { setDeleting(true); setStatus({ text: 'Suppression en cours…', type: 'muted' }) }
+        if (doneDeleting) { setDeleting(false); setStatus({ text: 'Import en cours…', type: 'muted' }) }
       }
       if (res.done) {
         clearInterval(pollRef.current)
-        setRunning(false); setProgress(false)
+        setRunning(false); setProgress(false); setDeleting(false)
         const s = await api('/stats')
         setStats(s)
         const n = s.imported !== '—' ? s.imported : 0
@@ -301,7 +322,7 @@ export default function App() {
       }
       if (res.error) {
         clearInterval(pollRef.current)
-        setRunning(false); setProgress(false)
+        setRunning(false); setProgress(false); setDeleting(false)
         setStatus({ text: res.error, type: 'error' })
       }
     }, 300)

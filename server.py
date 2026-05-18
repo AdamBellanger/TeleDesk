@@ -279,9 +279,14 @@ def _worker(excel_path, client_name, dry_run, operator, file_type, replace=False
             if _eq_index_path.exists():
                 import json as _json
                 eq_ids = _json.loads(_eq_index_path.read_text(encoding="utf-8"))
-                logger.info("%d équipement(s) à supprimer (index local).", len(eq_ids))
-                deleted = sum(1 for eid in eq_ids if bob.delete_equipment(eid))
-                logger.info("%d équipement(s) supprimé(s).", deleted)
+                total_del = len(eq_ids)
+                logger.info("%d équipement(s) à supprimer (index local).", total_del)
+                deleted = 0
+                for eid in eq_ids:
+                    if bob.delete_equipment(eid):
+                        deleted += 1
+                    logger.info("⏳ Suppression en cours… (%d/%d)", deleted, total_del)
+                logger.info("✓ %d équipement(s) supprimé(s).", deleted)
                 _eq_index_path.unlink(missing_ok=True)
             else:
                 logger.warning("Aucun index local trouvé — impossible de supprimer les équipements précédents.")
