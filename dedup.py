@@ -53,9 +53,12 @@ class DuplicateDetector:
     def _extract(obj: dict, key: str) -> Optional[str]:
         """Cherche la clé dans le dict, avec quelques alias courants."""
         aliases = {
+            "serial":        ["serial", "serial_number", "numero_materiel"],
             "serial_number": ["serial_number", "serial", "numero_materiel"],
+            "mac":           ["mac", "mac_address", "mac_id", "id"],
             "mac_address":   ["mac_address", "mac", "mac_id", "id"],
             "edn":           ["edn"],
+            "name":          ["name"],
         }
         for candidate in aliases.get(key, [key]):
             val = obj.get(candidate)

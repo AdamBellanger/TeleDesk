@@ -116,8 +116,9 @@ class BobDeskClient:
         results, page = [], 1
         while True:
             data = self._request("POST", endpoint, json={**(body or {}), "page": page, "per_page": 100})
-            items = data.get("elements", data.get("data", []))
+            items = data.get("elements", data.get("data", data.get("items", [])))
             if not items:
+                logger.debug("_get_all_post %s page %d: 0 éléments, clés disponibles: %s", endpoint, page, list(data.keys()) if isinstance(data, dict) else type(data))
                 break
             results.extend(items)
             if len(items) < 100:
@@ -156,10 +157,32 @@ class BobDeskClient:
 
     def get_client_equipments(self, client_id: str) -> list[dict]:
         try:
-            return self._get_all_post("/equipments/list", {"_client": client_id})
+            results = self._get_all_post("/equipments/list", {"_client": client_id})
+            logger.info("get_client_equipments (filtre API): %d équipement(s) pour client %s", len(results), client_id)
+            if results:
+                return results
+            # Fallback : certaines instances retournent tous les équipements sans filtre
+            logger.info("Fallback: récupération sans filtre et filtrage côté client...")
+            all_eq = self._get_all_post("/equipments/list", {})
+            filtered = [
+                eq for eq in all_eq
+                if self._match_client(eq, client_id)
+            ]
+            logger.info("get_client_equipments (fallback): %d équipement(s) pour client %s (total %d)", len(filtered), client_id, len(all_eq))
+            return filtered
         except BobDeskAPIError as exc:
-            logger.debug("Impossible de charger les équipements existants (%s) — anti-doublon désactivé.", exc)
+            logger.warning("Impossible de charger les équipements existants (%s) — anti-doublon désactivé.", exc)
             return []
+
+    @staticmethod
+    def _match_client(eq: dict, client_id: str) -> bool:
+        """Vérifie si un équipement appartient au client, quelle que soit la forme du champ _client."""
+        raw = eq.get("_client")
+        if raw is None:
+            return False
+        if isinstance(raw, dict):
+            return str(raw.get("_id", "")) == str(client_id)
+        return str(raw) == str(client_id)
 
     def get_field_sections(self) -> list[dict]:
         data = self._request("GET", "/fieldSections/equipment")
