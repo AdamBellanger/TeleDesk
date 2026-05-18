@@ -267,7 +267,7 @@ export default function App() {
   const logRef  = useRef()
   const pollRef = useRef()
 
-  const OPERATORS = ['Orange', 'Unyc', 'Kosc', 'SFR', 'Bouygues', 'Axione', 'Autre']
+  const OPERATORS = ['Orange', 'Unyc', 'Kosc', 'SFR', 'Bouygues', 'Axione', 'Covage', 'Ielo', 'Autre']
 
   useEffect(() => {
     api('/init').then(d => {
