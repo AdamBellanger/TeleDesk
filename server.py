@@ -58,6 +58,7 @@ _log_queue: queue.Queue = queue.Queue()
 _import_done  = False
 _import_error = ""
 _import_stats: dict = {}
+_import_progress: dict = {"current": 0, "total": 0}
 
 DIST = _BASE / "frontend_dist"
 app = Flask(__name__, static_folder=str(DIST), static_url_path="")
@@ -138,7 +139,15 @@ def api_save_credentials():
 @app.post("/api/detect_type")
 def api_detect_type():
     path = request.json.get("path", "")
-    return jsonify({"type": detect_import_type(path)})
+    file_type = detect_import_type(path)
+    row_count = 0
+    try:
+        import pandas as pd
+        df = pd.read_excel(path, dtype=str, engine="calamine")
+        row_count = max(0, len(df) - 1)
+    except Exception:
+        pass
+    return jsonify({"type": file_type, "rows": row_count})
 
 
 @app.post("/api/start")
@@ -181,9 +190,10 @@ def api_logs():
         try: lines.append(_log_queue.get_nowait())
         except queue.Empty: break
     return jsonify({
-        "lines": lines,
-        "done":  _import_done,
-        "error": _import_error or None,
+        "lines":    lines,
+        "done":     _import_done,
+        "error":    _import_error or None,
+        "progress": _import_progress,
     })
 
 
@@ -200,6 +210,45 @@ def api_open_images():
     IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     subprocess.Popen(["explorer", str(IMAGES_DIR)])
     return jsonify({"ok": True})
+
+
+@app.post("/api/open_report")
+def api_open_report():
+    client_name = request.json.get("client", "").strip()
+    import re
+    safe = re.sub(r'[\\/:*?"<>|]', "_", client_name).strip("_ ")
+    report_dir = Path(os.getenv("REPORT_DIR", str(_APPDATA / "reports"))) / safe
+    if not report_dir.exists():
+        report_dir = Path(os.getenv("REPORT_DIR", str(_APPDATA / "reports")))
+    subprocess.Popen(["explorer", str(report_dir)])
+    return jsonify({"ok": True})
+
+
+@app.get("/api/history")
+def api_history():
+    rdir = Path(os.getenv("REPORT_DIR", str(_APPDATA / "reports")))
+    entries = []
+    if rdir.exists():
+        for client_dir in sorted(rdir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+            if not client_dir.is_dir():
+                continue
+            jsons = sorted(client_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if jsons:
+                import json as _json
+                try:
+                    data = _json.loads(jsons[0].read_text(encoding="utf-8"))
+                    summary = data.get("summary", {})
+                    entries.append({
+                        "client": client_dir.name.replace("_", " "),
+                        "imported": summary.get("imported", 0),
+                        "error": summary.get("error", 0),
+                        "date": jsons[0].stem.split("_")[1] + "_" + jsons[0].stem.split("_")[2] if len(jsons[0].stem.split("_")) >= 3 else "",
+                    })
+                except Exception:
+                    pass
+            if len(entries) >= 5:
+                break
+    return jsonify(entries)
 
 
 # ── Worker import ─────────────────────────────────────────────────────────
@@ -228,7 +277,7 @@ _SUBCATS_TO_DELETE = {
 
 
 def _worker(excel_path, client_name, dry_run, operator, file_type, replace=False):
-    global _import_done, _import_error, _import_stats
+    global _import_done, _import_error, _import_stats, _import_progress
     logger = logging.getLogger("import")
     try:
         with open(CONFIG_PATH, encoding="utf-8") as f:
@@ -300,7 +349,9 @@ def _worker(excel_path, client_name, dry_run, operator, file_type, replace=False
         rdir     = os.getenv("REPORT_DIR", str(_APPDATA / "reports"))
         reporter = ImportReporter(rdir, clabel.replace(" ", "_"), dry_run)
 
-        run_import(rows, mapper, dd, bob, cid, loc, reporter, IMAGES_DIR if IMAGES_DIR.is_dir() else None)
+        _import_progress["total"] = len(rows)
+        _import_progress["current"] = 0
+        run_import(rows, mapper, dd, bob, cid, loc, reporter, IMAGES_DIR if IMAGES_DIR.is_dir() else None, _import_progress)
 
         reporter.print_summary()
         reporter.save_csv()

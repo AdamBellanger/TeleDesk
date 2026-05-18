@@ -75,7 +75,7 @@ function LogLine({ line }) {
 }
 
 // ── DropZone ──────────────────────────────────────────────────────────────
-function DropZone({ file, fileType, onFile }) {
+function DropZone({ file, fileType, fileRows, onFile }) {
   const [drag, setDrag] = useState(false)
 
   const handleBrowse = async () => {
@@ -123,7 +123,9 @@ function DropZone({ file, fileType, onFile }) {
               </span>
             )}
             <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{file.split(/[\\/]/).pop()}</div>
-            <div className="text-xs" style={{ color: 'var(--text3)' }}>Cliquez pour changer de fichier</div>
+            <div className="text-xs" style={{ color: 'var(--text3)' }}>
+              {fileRows > 0 ? `${fileRows} ligne${fileRows > 1 ? 's' : ''} détectée${fileRows > 1 ? 's' : ''} · ` : ''}Cliquez pour changer
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 pointer-events-none">
@@ -267,6 +269,7 @@ export default function App() {
   const [dark, setDark]         = useTheme()
   const [file, setFile]         = useState('')
   const [fileType, setFileType] = useState('')
+  const [fileRows, setFileRows] = useState(0)
   const [client, setClient]     = useState('')
   const [operator, setOperator] = useState('Orange')
   const [dryRun, setDryRun]     = useState(false)
@@ -281,7 +284,10 @@ export default function App() {
   const [showLogin, setShowLogin]       = useState(false)
   const [email, setEmail]       = useState('')
   const [imagesDir, setImagesDir] = useState('')
-  const [progress, setProgress] = useState(false)
+  const [progress, setProgress]   = useState(false)
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 })
+  const [reportClient, setReportClient]     = useState('')
+  const [history, setHistory]               = useState([])
   const logRef  = useRef()
   const pollRef = useRef()
 
@@ -293,12 +299,15 @@ export default function App() {
       setImagesDir(d.images_dir || '')
       if (!d.email) setShowLogin(true)
     })
+    api('/history').then(d => setHistory(d || []))
   }, [])
 
   const handleFile = useCallback(async (path) => {
     setFile(path)
+    setFileRows(0)
     const res = await api('/detect_type', { path })
     setFileType(res.type || 'alcatel')
+    setFileRows(res.rows || 0)
   }, [])
 
   const pollLogs = useCallback(() => {
@@ -322,14 +331,18 @@ export default function App() {
         setTimeout(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight }, 50)
         const doneDeleting = res.lines.some(l => l.includes('supprimé(s)'))
         if (doneDeleting) { setDeleting(false); setStatus({ text: 'Import en cours…', type: 'muted' }) }
+        if (res.progress) setImportProgress(res.progress)
       }
       if (res.done) {
         clearInterval(pollRef.current)
         setRunning(false); setProgress(false); setDeleting(false)
+        setImportProgress({ current: 0, total: 0 })
         const s = await api('/stats')
         setStats(s)
         const n = s.imported !== '—' ? s.imported : 0
         setStatus({ text: `Terminé${dryRun ? ' [DRY-RUN]' : ''} — ${n} importé(s)`, type: 'success' })
+        setReportClient(client)
+        api('/history').then(d => setHistory(d || []))
       }
       if (res.error) {
         clearInterval(pollRef.current)
@@ -344,6 +357,8 @@ export default function App() {
     if (!file)          { setStatus({ text: "Glissez d'abord un fichier Excel.", type: 'warn' }); return }
     if (!client.trim()) { setStatus({ text: 'Saisissez le nom du client.', type: 'warn' }); return }
     setRunning(true); setProgress(true)
+    setReportClient('')
+    setImportProgress({ current: 0, total: 0 })
     setStats({ imported: '—', skipped_duplicate: '—', skipped_unmappable: '—', error: '—' })
     setStatus({ text: 'Connexion à Bob! Desk…', type: 'muted' })
     await api('/start', { file, client, dry_run: dryRun, operator, file_type: fileType, replace })
@@ -448,16 +463,59 @@ export default function App() {
 
           {progress && (
             <div className="mt-2 h-px rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
-              <div className="h-full animate-pulse" style={{ width: '60%', background: 'var(--accent)' }} />
+              <div className="h-full transition-all duration-300"
+                style={{
+                  width: importProgress.total > 0 ? `${Math.round((importProgress.current / importProgress.total) * 100)}%` : '60%',
+                  background: 'var(--accent)',
+                  animation: importProgress.total > 0 ? 'none' : 'pulse 2s infinite',
+                }} />
             </div>
           )}
 
+          {progress && importProgress.total > 0 && (
+            <p className="mt-1 text-[10px] text-center tabular-nums" style={{ color: 'var(--text3)' }}>
+              {importProgress.current}/{importProgress.total} lignes
+            </p>
+          )}
+
           {status.text && (
-            <p className="mt-2 text-[11px] text-center" style={{ color: statusColor[status.type] }}>{status.text}</p>
+            <p className="mt-1 text-[11px] text-center" style={{ color: statusColor[status.type] }}>{status.text}</p>
+          )}
+
+          {reportClient && !running && (
+            <button onClick={() => api('/open_report', { client: reportClient })}
+              className="mt-2 w-full py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              style={{ borderColor: 'var(--border)', color: 'var(--text2)', background: 'var(--card)' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+              📁 Ouvrir le rapport
+            </button>
           )}
         </div>
 
         <div className="flex-1" />
+
+        {/* Historique */}
+        {history.length > 0 && (
+          <>
+            <div className="mx-4 h-px" style={{ background: 'var(--border)' }} />
+            <div className="px-4 pt-3 pb-1">
+              <div className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--text3)' }}>Récents</div>
+              {history.map((h, i) => (
+                <button key={i} onClick={() => setClient(h.client)}
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-colors cursor-pointer text-left"
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--card)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <span className="text-[11px] truncate flex-1" style={{ color: 'var(--text2)' }}>{h.client}</span>
+                  <span className="text-[10px] tabular-nums shrink-0 ml-1" style={{ color: h.error > 0 ? '#f87171' : '#34d399' }}>
+                    {h.imported}↑
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         <div className="mx-4 h-px" style={{ background: 'var(--border)' }} />
 
         {/* Compte */}
@@ -478,7 +536,7 @@ export default function App() {
 
       {/* ── MAIN ────────────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col overflow-hidden p-5 min-w-0">
-        <DropZone file={file} fileType={fileType} onFile={handleFile} />
+        <DropZone file={file} fileType={fileType} fileRows={fileRows} onFile={handleFile} />
 
         {/* Stats */}
         <div className="flex gap-3 mt-4">

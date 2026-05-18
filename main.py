@@ -99,12 +99,15 @@ def run_import(
     location_id: str | None,
     reporter: ImportReporter,
     images_dir: Path | None = None,
+    progress: dict | None = None,
 ) -> None:
     logger = logging.getLogger("import")
     is_unyc  = isinstance(mapper, UnycMapper)
     is_fibre = isinstance(mapper, FibreMapper)
 
     for idx, raw_row in enumerate(rows, start=2):
+        if progress is not None:
+            progress["current"] = idx - 1
         if is_unyc:
             edn    = raw_row.get("num_court", "")
             type_  = raw_row.get("model", "")
