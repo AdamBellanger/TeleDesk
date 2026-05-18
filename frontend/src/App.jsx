@@ -305,11 +305,22 @@ export default function App() {
     pollRef.current = setInterval(async () => {
       const res = await api('/logs')
       if (res.lines?.length) {
-        setLogs(prev => [...prev, ...res.lines])
+        setLogs(prev => {
+          let next = [...prev]
+          for (const line of res.lines) {
+            if (/Suppression en cours/i.test(line)) {
+              // Remplace la dernière ligne "Suppression en cours" au lieu d'en ajouter une
+              const idx = next.findLastIndex(l => /Suppression en cours/i.test(l))
+              if (idx !== -1) next[idx] = line
+              else next.push(line)
+            } else {
+              next.push(line)
+            }
+          }
+          return next
+        })
         setTimeout(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight }, 50)
-        const isDeleting = res.lines.some(l => l.includes('Suppression en cours'))
         const doneDeleting = res.lines.some(l => l.includes('supprimé(s)'))
-        if (isDeleting) { setDeleting(true); setStatus({ text: 'Suppression en cours…', type: 'muted' }) }
         if (doneDeleting) { setDeleting(false); setStatus({ text: 'Import en cours…', type: 'muted' }) }
       }
       if (res.done) {
