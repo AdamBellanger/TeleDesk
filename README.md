@@ -1,7 +1,7 @@
 # TéléDesk Import
 
 Outil d'import automatique d'équipements téléphonie et réseau vers **Bob! Desk** (GMAO).  
-Interface graphique moderne — drag & drop, thème sombre/clair, rapports CSV/JSON.
+Interface graphique moderne — drag & drop, thème sombre/clair olive, rapports CSV/JSON.
 
 ---
 
@@ -13,17 +13,19 @@ Windows 10/11 — aucune installation requise. Double-cliquez et c'est parti.
 
 ---
 
-## Fonctionnalités
+## Fonctionnalités v2.0
 
 - **Import Alcatel-Lucent** — export EDN Excel → équipements Bob! Desk
 - **Import Unyc / Centrex** — export utilisateurs → postes IP, SoftPhone Speek, téléphones mobiles
-- **Import Liens Fibre** — FTTH / FTTO / FTTO+GTR avec sélection opérateur
+- **Import Liens Fibre** — FTTH / FTTO / FTTO+GTR avec sélection opérateur (Orange, Unyc, Kosc, SFR, Bouygues, Axione, Covage, Ielo, Autre)
 - **Détection automatique** du type de fichier à l'ouverture
 - **Anti-doublon** — vérifie les équipements existants avant import
+- **Mode Remplacer** — supprime les équipements précédents (créés via TéléDesk) avant d'importer la nouvelle configuration, avec progression animée dans le journal
 - **Mode test (dry-run)** — simule l'import sans rien écrire dans Bob! Desk
 - **Photos équipements** — upload automatique de l'image sur Bob! Desk
 - **Rapports** — un dossier par client avec fichiers CSV + JSON horodatés
 - **Thème sombre / clair olive** — persisté entre les sessions
+- **Journal d'exécution** — affichage en temps réel, masquable
 
 ---
 
@@ -112,9 +114,22 @@ Les identifiants (email/mot de passe) sont saisis au premier lancement et stock�
 
 ---
 
+## Mode Remplacer
+
+Le mode Remplacer supprime les équipements précédemment créés par TéléDesk pour un client, puis importe la nouvelle configuration.
+
+**Fonctionnement :**
+1. Après chaque import, TéléDesk sauvegarde les IDs créés dans `%APPDATA%\TeleDesk\equipments_{client_id}.json`
+2. Lors d'un import avec Remplacer activé, ces IDs sont supprimés un par un avant le nouvel import
+3. La progression est visible en temps réel dans le journal : `Suppression en cours… (X/N)`
+
+> **Note :** le mode Remplacer ne fonctionne que pour les équipements créés via TéléDesk. Les équipements saisis manuellement dans Bob! Desk ne sont pas concernés.
+
+---
+
 ## Rapports d'import
 
-Après chaque import, deux fichiers sont créés dans `reports/<NomClient>/` :
+Après chaque import, deux fichiers sont créés dans `%APPDATA%\TeleDesk\reports\<NomClient>\` :
 
 - `import_<timestamp>_LIVE.csv` — une ligne par équipement traité
 - `import_<timestamp>_LIVE.json` — même données + résumé chiffré
@@ -127,3 +142,19 @@ Statuts : `imported` · `skipped_duplicate` · `skipped_unmappable` · `error`
 
 Les images sont copiées dans `%APPDATA%\TeleDesk\images\` au premier lancement.  
 Pour ajouter une photo : déposer le fichier image dans ce dossier, nommé d'après le modèle (ex: `T53.jpg`). Aucun rebuild nécessaire.
+
+---
+
+## Changelog
+
+### v2.0
+- Ajout du **mode Remplacer** — supprime les équipements précédents avant import avec progression animée
+- Ajout des opérateurs fibre **Covage** et **Ielo**
+- Correction de l'**anti-doublon** pour les imports Unyc, Alcatel et Fibre
+- Le toggle Remplacer n'apparaît qu'après avoir chargé un fichier
+- Interface redesignée : thème sombre et thème clair olive
+
+### v1.0
+- Import Alcatel-Lucent, Unyc/Centrex, Liens Fibre
+- Anti-doublon, dry-run, upload images, rapports CSV/JSON
+- Interface React + pywebview
