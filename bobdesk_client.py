@@ -156,20 +156,30 @@ class BobDeskClient:
             return None
 
     def get_client_equipments(self, client_id: str) -> list[dict]:
+        # Essai 1 : filtre par client_id
         try:
             results = self._get_all_post("/equipments/list", {"_client": client_id})
-            logger.info("get_client_equipments (filtre API): %d équipement(s) pour client %s", len(results), client_id)
+            logger.info("get_client_equipments: %d équipement(s) pour client %s", len(results), client_id)
             if results:
                 return results
-            # Fallback : certaines instances retournent tous les équipements sans filtre
-            logger.info("Fallback: récupération sans filtre et filtrage côté client...")
+        except BobDeskAPIError as exc:
+            logger.warning("get_client_equipments filtre échoué (%s), tentative sans filtre...", exc)
+
+        # Essai 2 : sans filtre, filtrage côté Python
+        try:
             all_eq = self._get_all_post("/equipments/list", {})
-            filtered = [
-                eq for eq in all_eq
-                if self._match_client(eq, client_id)
-            ]
-            logger.info("get_client_equipments (fallback): %d équipement(s) pour client %s (total %d)", len(filtered), client_id, len(all_eq))
+            filtered = [eq for eq in all_eq if self._match_client(eq, client_id)]
+            logger.info("get_client_equipments (sans filtre): %d/%d équipement(s) pour client %s", len(filtered), len(all_eq), client_id)
             return filtered
+        except BobDeskAPIError as exc:
+            logger.warning("get_client_equipments sans filtre échoué (%s)", exc)
+
+        # Essai 3 : GET direct sur le client
+        try:
+            data = self._request("GET", f"/equipments?_client={client_id}&per_page=500")
+            items = data.get("elements", data.get("data", data.get("items", [])))
+            logger.info("get_client_equipments (GET): %d équipement(s) pour client %s", len(items), client_id)
+            return items
         except BobDeskAPIError as exc:
             logger.warning("Impossible de charger les équipements existants (%s) — anti-doublon désactivé.", exc)
             return []

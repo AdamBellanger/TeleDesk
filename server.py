@@ -272,15 +272,24 @@ def _worker(excel_path, client_name, dry_run, operator, file_type, replace=False
             dd_keys = cfg.get("dedup_keys", ["serial"])
 
         # Suppression préalable si mode Remplacer activé
+        _eq_index_path = _APPDATA / f"equipments_{cid}.json"
         if replace:
-            subcats = _SUBCATS_TO_DELETE.get(file_type, set())
             logger.info("━" * 50)
             logger.info("MODE REMPLACER — suppression des équipements existants (%s)", file_type)
-            bob.delete_client_equipments_by_subcategories(cid, subcats)
+            if _eq_index_path.exists():
+                import json as _json
+                eq_ids = _json.loads(_eq_index_path.read_text(encoding="utf-8"))
+                logger.info("%d équipement(s) à supprimer (index local).", len(eq_ids))
+                deleted = sum(1 for eid in eq_ids if bob.delete_equipment(eid))
+                logger.info("%d équipement(s) supprimé(s).", deleted)
+                _eq_index_path.unlink(missing_ok=True)
+            else:
+                logger.warning("Aucun index local trouvé — impossible de supprimer les équipements précédents.")
+                logger.warning("Conseil : effectuez d'abord un import normal, puis utilisez Remplacer.")
             logger.info("━" * 50)
 
         loc = bob.get_client_location(cid)
-        ex  = bob.get_client_equipments(cid)
+        ex  = []  # /equipments/list est indisponible sur cette instance
         dd  = DuplicateDetector(ex, dd_keys)
 
         rdir     = os.getenv("REPORT_DIR", str(_APPDATA / "reports"))
@@ -291,6 +300,13 @@ def _worker(excel_path, client_name, dry_run, operator, file_type, replace=False
         reporter.print_summary()
         reporter.save_csv()
         reporter.save_json()
+
+        # Sauvegarde l'index des IDs créés pour le mode Remplacer
+        if not dry_run:
+            import json as _json
+            created_ids = [r.equipment_id for r in reporter.results if r.status == "imported" and r.equipment_id]
+            _eq_index_path.write_text(_json.dumps(created_ids), encoding="utf-8")
+            logger.info("Index équipements sauvegardé : %d ID(s) → %s", len(created_ids), _eq_index_path)
 
         counts = {}
         for r in reporter.results:
