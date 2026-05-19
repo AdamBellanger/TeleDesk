@@ -27,6 +27,8 @@ from referential import load_referential
 from reporter import ImportReporter
 from unyc_mapper import UnycMapper
 from unyc_reader import read_unyc_excel
+from video_reader import read_video_excel
+from video_mapper import VideoMapper
 
 # ── Chemins ───────────────────────────────────────────────────────────────
 _BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
@@ -273,6 +275,16 @@ _SUBCATS_TO_DELETE = {
         "69fc57deabf911001a3e2d3c",  # Fibre FTTO
         "69fc57e8abf911001a3e2dab",  # Fibre FTTO + GTR
     },
+    "video": {
+        "6a0c34a1338bbc0013e1a227",  # Caméra IP
+        "6a0c34a12f81e00019972ef3",  # Caméra Analogique
+        "6a0c34a1c3897c0012284f47",  # Caméra Dôme
+        "6a0c34a12f81e00019972ef5",  # Caméra PTZ
+        "6a0c34a1c3897c0012284f49",  # NVR
+        "6a0c34a1338bbc0013e1a229",  # DVR
+        "6a0c34a12f81e00019972ef7",  # Encodeur
+        "6a0c34a1338bbc0013e1a22b",  # Serveur d'enregistrement
+    },
 }
 
 
@@ -314,6 +326,12 @@ def _worker(excel_path, client_name, dry_run, operator, file_type, replace=False
             rows    = read_fibre_excel(excel_path)
             mapper  = FibreMapper(operator)
             dd_keys = ["serial"]
+        elif file_type == "video":
+            logger.info("Type : Vidéosurveillance")
+            rows    = read_video_excel(excel_path)
+            custom_fields = cfg.get("bobdesk_ids", {}).get("custom_fields", {})
+            mapper  = VideoMapper(custom_fields)
+            dd_keys = ["serial", "mac", "name"]
         else:
             logger.info("Type : Alcatel-Lucent")
             rows    = read_alcatel_excel(excel_path)

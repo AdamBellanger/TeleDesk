@@ -68,15 +68,17 @@ def resolve_client(bob: BobDeskClient, name: str | None, client_id: str | None) 
 
 
 def detect_import_type(filepath: str) -> str:
-    """Détecte automatiquement le type d'import (alcatel, unyc ou fibre) selon les colonnes."""
+    """Détecte automatiquement le type d'import (alcatel, unyc, fibre ou video) selon les colonnes."""
     import pandas as pd
     from pathlib import Path
     path = Path(filepath)
     for engine in ("calamine", "openpyxl", "xlrd"):
         try:
-            df = pd.read_excel(path, dtype=str, engine=engine, header=None, nrows=10)
+            df = pd.read_excel(path, dtype=str, engine=engine, header=None, nrows=20)
+            all_vals = set()
             for _, row in df.iterrows():
-                vals = [str(v).strip().lower() for v in row.values]
+                vals = [str(v).strip().lower() for v in row.values if str(v).strip()]
+                all_vals.update(vals)
                 if "edn" in vals:
                     return "alcatel"
                 if "num. court" in vals or "numéro(s)" in vals:
@@ -84,6 +86,10 @@ def detect_import_type(filepath: str) -> str:
                 if "référence" in vals or "reference" in vals:
                     if "offre" in vals or "site installation" in vals:
                         return "fibre"
+            # Vidéosurveillance : "liste materiel installe" + "designation"
+            if any("liste materiel" in v or "liste matériel" in v for v in all_vals):
+                if any("designation" in v or "désignation" in v for v in all_vals):
+                    return "video"
             break
         except Exception:
             continue

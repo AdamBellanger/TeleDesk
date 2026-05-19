@@ -94,9 +94,10 @@ function DropZone({ file, fileType, fileRows, onFile }) {
   }, [onFile])
 
   const badge = {
-    alcatel: { label: 'ALCATEL-LUCENT', cls: 'text-indigo-500 border-indigo-500/30 bg-indigo-500/10' },
-    unyc:    { label: 'UNYC / CENTREX', cls: 'text-emerald-500 border-emerald-500/30 bg-emerald-500/10' },
-    fibre:   { label: 'LIENS FIBRE',    cls: 'text-sky-500 border-sky-500/30 bg-sky-500/10' },
+    alcatel: { label: 'ALCATEL-LUCENT',    cls: 'text-indigo-500 border-indigo-500/30 bg-indigo-500/10' },
+    unyc:    { label: 'UNYC / CENTREX',    cls: 'text-emerald-500 border-emerald-500/30 bg-emerald-500/10' },
+    fibre:   { label: 'LIENS FIBRE',       cls: 'text-sky-500 border-sky-500/30 bg-sky-500/10' },
+    video:   { label: 'VIDÉOSURVEILLANCE', cls: 'text-orange-500 border-orange-500/30 bg-orange-500/10' },
   }[fileType]
 
   return (
@@ -380,7 +381,7 @@ export default function App() {
         <div className="px-5 pt-4 pb-3">
           <div className="text-base font-bold tracking-tight" style={{ color: 'var(--text)' }}>TéléDesk</div>
           <div className="text-[10px] mt-0.5 uppercase tracking-widest font-medium" style={{ color: 'var(--accent)' }}>
-            {fileType === 'unyc' ? 'Unyc / Centrex' : fileType === 'fibre' ? 'Liens Fibre' : 'Alcatel & Unyc'}
+            {fileType === 'unyc' ? 'Unyc / Centrex' : fileType === 'fibre' ? 'Liens Fibre' : fileType === 'video' ? 'Vidéosurveillance' : 'Alcatel & Unyc'}
           </div>
         </div>
 
