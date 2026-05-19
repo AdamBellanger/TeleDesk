@@ -13,16 +13,17 @@ Windows 10/11 — aucune installation requise. Double-cliquez et c'est parti.
 
 ---
 
-## Fonctionnalités v2.0
+## Fonctionnalités v3.0
 
 - **Import Alcatel-Lucent** — export EDN Excel → équipements Bob! Desk
 - **Import Unyc / Centrex** — export utilisateurs → postes IP, SoftPhone Speek, téléphones mobiles
 - **Import Liens Fibre** — FTTH / FTTO / FTTO+GTR avec sélection opérateur (Orange, Unyc, Kosc, SFR, Bouygues, Axione, Covage, Ielo, Autre)
+- **Import Vidéosurveillance** — détection automatique caméras (IP, Dôme, PTZ, Analogique), NVR, DVR, Encodeur, Serveur d'enregistrement
 - **Détection automatique** du type de fichier à l'ouverture
 - **Anti-doublon** — vérifie les équipements existants avant import
 - **Mode Remplacer** — supprime les équipements précédents (créés via TéléDesk) avant d'importer la nouvelle configuration, avec progression animée dans le journal
 - **Mode test (dry-run)** — simule l'import sans rien écrire dans Bob! Desk
-- **Photos équipements** — upload automatique de l'image sur Bob! Desk
+- **Photos équipements** — upload automatique de l'image sur Bob! Desk (téléphonie + vidéosurveillance)
 - **Rapports** — un dossier par client avec fichiers CSV + JSON horodatés
 - **Thème sombre / clair olive** — persisté entre les sessions
 - **Journal d'exécution** — affichage en temps réel, masquable
@@ -146,6 +147,13 @@ Pour ajouter une photo : déposer le fichier image dans ce dossier, nommé d'apr
 ---
 
 ## Changelog
+
+### v3.0
+- Ajout de l'**import Vidéosurveillance** — détection automatique du type de caméra (IP, Dôme, PTZ, Analogique), NVR, DVR, Encodeur, Serveur d'enregistrement
+- Détection de marque automatique (AXIS, Dahua, Hikvision, Bosch, Hanwha…)
+- Upload automatique des photos pour les équipements vidéo
+- Champs personnalisés Adresse MAC et Adresse IP sur les caméras
+- Mode Remplacer compatible avec les imports vidéosurveillance
 
 ### v2.0
 - Ajout du **mode Remplacer** — supprime les équipements précédents avant import avec progression animée
