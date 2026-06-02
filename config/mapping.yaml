@@ -85,8 +85,9 @@ type_to_subcategory:
   "Add-On 10":      "Module de touches"
   "Add-On 40":      "Module de touches"
   "Add-On":         "Module de touches"
-  # Terminaux virtuels / outils -> SoftPhone ou null si non mappable
-  "Virtual Terminal":          "SoftPhone"
+  # Terminaux virtuels / outils -> null si non mappable
+  "Virtual Terminal":          null
+  "IPDSP":                     "SoftPhone"
   "Remote Access V34":         null
   "Remote Access ISDN":        null
   "Internal Voice Mail Unit":  null
@@ -117,7 +118,8 @@ model_name_override:
   "^Add-On 10":        "Module de touches 10"
   "^Add-On 40":        "Module de touches 40"
   "^Add-On":           "Module de touches"
-  "^Virtual Terminal": "Softphone"
+  "^Virtual Terminal": "Virtual Terminal"
+  "^IPDSP":            "Alcatel SoftPhone"
   "^Analogic":         "Poste Analogique"
   "^Analog":           "Poste Analogique"
 

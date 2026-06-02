@@ -148,6 +148,10 @@ Pour ajouter une photo : déposer le fichier image dans ce dossier, nommé d'apr
 
 ## Changelog
 
+### v3.1
+- Correction mapping Alcatel : `IPDSP` (IP Desktop SoftPhone) correctement mappé en SoftPhone avec image
+- `Virtual Terminal` ignoré à l'import (non-mappable)
+
 ### v3.0
 - Ajout de l'**import Vidéosurveillance** — détection automatique du type de caméra (IP, Dôme, PTZ, Analogique), NVR, DVR, Encodeur, Serveur d'enregistrement
 - Détection de marque automatique (AXIS, Dahua, Hikvision, Bosch, Hanwha…)
