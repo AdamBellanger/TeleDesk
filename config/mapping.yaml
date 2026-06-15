@@ -79,6 +79,8 @@ type_to_subcategory:
   "8058":           "Téléphone IP"
   "8068":           "Téléphone IP"
   # Postes numériques (UA) — fallback si interface absente
+  "4029":           "Téléphone Numérique"
+  "4039":           "Téléphone Numérique"
   "8029":           "Téléphone Numérique"
   "8039":           "Téléphone Numérique"
   "8079":           "Téléphone Numérique"

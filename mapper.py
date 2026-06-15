@@ -121,7 +121,7 @@ class AlcatelMapper:
         # 1. Mapping par Interface (prioritaire) — insensible à la casse, préfixe inclus
         imap = self.cfg.get("interface_to_subcategory", {})
         imap_upper = {k.upper(): v for k, v in imap.items()}
-        logger.debug("_resolve_subcategory: interface=%r type=%r cat=%r", interface, type_val, alcatel_cat)
+        logger.info("Mapping sous-cat — Interface: %r | Type: %r | Catégorie: %r", interface, type_val, alcatel_cat)
         if interface:
             # Correspondance exacte
             if interface.upper() in imap_upper:
