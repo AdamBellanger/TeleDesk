@@ -74,26 +74,12 @@ class AlcatelMapper:
         job_name = self.cfg["defaults"].get("job", "Telephonie")
         job_id = self.cfg.get("bobdesk_ids", {}).get("jobs", {}).get(job_name)
 
-        # Colonnes Alcatel selon interface :
-        #   Postes UA (numériques) : ID = numéro de série, pas de MAC ni IP
-        #   Autres postes (IP, Z, A) : Numéro matériel = serial, ID = adresse MAC
-        interface = alcatel.get("interface", "").strip().upper()
-        is_ua = (interface == "UA")
-
-        if is_ua:
-            serial_val = alcatel.get("mac_id") or ""           # colonne "ID" = numéro de série UA
-            mac_val    = ""
-            ip_val     = ""
-        else:
-            serial_val = alcatel.get("numero_materiel") or ""  # Numéro matériel = serial IP/Z/A
-            mac_val    = alcatel.get("mac_id", "").strip()     # ID = adresse MAC IP/Z/A
-            ip_val     = alcatel.get("adresse_ip", "").strip()
-
+        # Tous postes : ID = numéro de série, Numéro matériel = adresse MAC, pas d'IP
         payload: dict = {
             "name":        name,
             "brand":       self.cfg["defaults"]["brand"],
             "model":       model,
-            "serial":      serial_val,
+            "serial":      alcatel.get("mac_id") or "",           # colonne "ID" = numéro de série
             "description": description,
             "_category":   category["_id"],
         }
@@ -104,11 +90,11 @@ class AlcatelMapper:
         if subcategory:
             payload["_subcategory"] = subcategory["_id"]
 
-        # Champs personnalisés si présents dans Bob! Desk
+        # Champs personnalisés — MAC uniquement, pas d'IP
         custom_fields = self.cfg.get("bobdesk_ids", {}).get("custom_fields", {})
         fields_values = []
-        ip  = ip_val
-        mac = mac_val
+        ip  = ""
+        mac = alcatel.get("numero_materiel", "").strip()          # Numéro matériel = adresse MAC
 
         if ip and "Adresse IP" in custom_fields:
             fields_values.append({"_field": custom_fields["Adresse IP"], "value": ip})
