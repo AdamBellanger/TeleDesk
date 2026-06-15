@@ -74,20 +74,28 @@ class AlcatelMapper:
         job_name = self.cfg["defaults"].get("job", "Telephonie")
         job_id = self.cfg.get("bobdesk_ids", {}).get("jobs", {}).get(job_name)
 
-        # Colonnes Alcatel :
-        #   "ID"              → numéro de série (serial)
-        #   "Numéro matériel" → adresse MAC
-        # Pour les postes numériques (UA) : serial uniquement, pas de MAC ni IP
+        # Colonnes Alcatel selon interface :
+        #   Postes UA (numériques) : ID = numéro de série, pas de MAC ni IP
+        #   Autres postes (IP, Z, A) : Numéro matériel = serial, ID = adresse MAC
         interface = alcatel.get("interface", "").strip().upper()
         is_ua = (interface == "UA")
 
+        if is_ua:
+            serial_val = alcatel.get("mac_id") or ""           # colonne "ID" = numéro de série UA
+            mac_val    = ""
+            ip_val     = ""
+        else:
+            serial_val = alcatel.get("numero_materiel") or ""  # Numéro matériel = serial IP/Z/A
+            mac_val    = alcatel.get("mac_id", "").strip()     # ID = adresse MAC IP/Z/A
+            ip_val     = alcatel.get("adresse_ip", "").strip()
+
         payload: dict = {
-            "name":               name,
-            "brand":              self.cfg["defaults"]["brand"],
-            "model":              model,
-            "serial":             alcatel.get("mac_id") or "",  # colonne "ID" = numéro de série
-            "description":        description,
-            "_category": category["_id"],
+            "name":        name,
+            "brand":       self.cfg["defaults"]["brand"],
+            "model":       model,
+            "serial":      serial_val,
+            "description": description,
+            "_category":   category["_id"],
         }
 
         if job_id:
@@ -99,8 +107,8 @@ class AlcatelMapper:
         # Champs personnalisés si présents dans Bob! Desk
         custom_fields = self.cfg.get("bobdesk_ids", {}).get("custom_fields", {})
         fields_values = []
-        ip  = "" if is_ua else alcatel.get("adresse_ip", "").strip()
-        mac = "" if is_ua else alcatel.get("numero_materiel", "").strip()  # "Numéro matériel" = adresse MAC
+        ip  = ip_val
+        mac = mac_val
 
         if ip and "Adresse IP" in custom_fields:
             fields_values.append({"_field": custom_fields["Adresse IP"], "value": ip})
