@@ -83,7 +83,7 @@ class AlcatelMapper:
             "name":               name,
             "brand":              self.cfg["defaults"]["brand"],
             "model":              model,
-            "serial":             "" if is_ua else (alcatel.get("numero_materiel") or ""),
+            "serial":             alcatel.get("numero_materiel") or "",
             "description":        description,
             "_category": category["_id"],
         }
@@ -97,7 +97,7 @@ class AlcatelMapper:
         # Champs personnalisés si présents dans Bob! Desk
         custom_fields = self.cfg.get("bobdesk_ids", {}).get("custom_fields", {})
         fields_values = []
-        ip = alcatel.get("adresse_ip", "").strip()
+        ip  = "" if is_ua else alcatel.get("adresse_ip", "").strip()
         mac = "" if is_ua else alcatel.get("mac_id", "").strip()
 
         if ip and "Adresse IP" in custom_fields:
