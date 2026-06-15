@@ -66,7 +66,24 @@ interface_to_subcategory:
 # Mapping Type Alcatel -> Sous-catégorie Bob! Desk
 # ---------------------------------------------------------------------------
 type_to_subcategory:
-  # Postes IP
+  # Postes numériques (UA) avec suffixe 's' — PRIORITAIRES sur les entrées IP ci-dessous
+  "4018s":          "Téléphone Numérique"
+  "4028s":          "Téléphone Numérique"
+  "4038s":          "Téléphone Numérique"
+  "4058s":          "Téléphone Numérique"
+  "4068s":          "Téléphone Numérique"
+  "8018s":          "Téléphone Numérique"
+  "8028s":          "Téléphone Numérique"
+  "8038s":          "Téléphone Numérique"
+  "8058s":          "Téléphone Numérique"
+  "8068s":          "Téléphone Numérique"
+  # Postes numériques (UA) — sans suffixe ou fallback si interface absente
+  "4029":           "Téléphone Numérique"
+  "4039":           "Téléphone Numérique"
+  "8029":           "Téléphone Numérique"
+  "8039":           "Téléphone Numérique"
+  "8079":           "Téléphone Numérique"
+  # Postes IP (sans suffixe 's')
   "4008":           "Téléphone IP"
   "4018":           "Téléphone IP"
   "4028":           "Téléphone IP"
@@ -78,12 +95,6 @@ type_to_subcategory:
   "8038":           "Téléphone IP"
   "8058":           "Téléphone IP"
   "8068":           "Téléphone IP"
-  # Postes numériques (UA) — fallback si interface absente
-  "4029":           "Téléphone Numérique"
-  "4039":           "Téléphone Numérique"
-  "8029":           "Téléphone Numérique"
-  "8039":           "Téléphone Numérique"
-  "8079":           "Téléphone Numérique"
   # Postes analogiques
   "Analogic":       "Téléphone Analogique"
   "Analog":         "Téléphone Analogique"
