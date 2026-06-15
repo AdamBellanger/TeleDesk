@@ -74,8 +74,10 @@ class AlcatelMapper:
         job_name = self.cfg["defaults"].get("job", "Telephonie")
         job_id = self.cfg.get("bobdesk_ids", {}).get("jobs", {}).get(job_name)
 
-        # Postes numériques (UA) : la colonne "ID" contient le numéro hardware, pas une MAC
-        # Le numéro matériel est également le hardware number — inutile à importer
+        # Colonnes Alcatel :
+        #   "ID"              → numéro de série (serial)
+        #   "Numéro matériel" → adresse MAC
+        # Pour les postes numériques (UA) : serial uniquement, pas de MAC ni IP
         interface = alcatel.get("interface", "").strip().upper()
         is_ua = (interface == "UA")
 
@@ -83,7 +85,7 @@ class AlcatelMapper:
             "name":               name,
             "brand":              self.cfg["defaults"]["brand"],
             "model":              model,
-            "serial":             alcatel.get("numero_materiel") or "",
+            "serial":             alcatel.get("mac_id") or "",  # colonne "ID" = numéro de série
             "description":        description,
             "_category": category["_id"],
         }
@@ -98,7 +100,7 @@ class AlcatelMapper:
         custom_fields = self.cfg.get("bobdesk_ids", {}).get("custom_fields", {})
         fields_values = []
         ip  = "" if is_ua else alcatel.get("adresse_ip", "").strip()
-        mac = "" if is_ua else alcatel.get("mac_id", "").strip()
+        mac = "" if is_ua else alcatel.get("numero_materiel", "").strip()  # "Numéro matériel" = adresse MAC
 
         if ip and "Adresse IP" in custom_fields:
             fields_values.append({"_field": custom_fields["Adresse IP"], "value": ip})
@@ -122,11 +124,18 @@ class AlcatelMapper:
         type_val    = (alcatel.get("type") or "").strip()
         alcatel_cat = (alcatel.get("categorie") or "").strip()
 
-        # 1. Mapping par Interface (prioritaire) — insensible à la casse
+        # 1. Mapping par Interface (prioritaire) — insensible à la casse, préfixe inclus
         imap = self.cfg.get("interface_to_subcategory", {})
         imap_upper = {k.upper(): v for k, v in imap.items()}
-        if interface and interface.upper() in imap_upper:
-            return imap_upper[interface.upper()]
+        logger.debug("_resolve_subcategory: interface=%r type=%r cat=%r", interface, type_val, alcatel_cat)
+        if interface:
+            # Correspondance exacte
+            if interface.upper() in imap_upper:
+                return imap_upper[interface.upper()]
+            # Correspondance par préfixe (ex: "UA3" → "UA")
+            for key_up, val in imap_upper.items():
+                if interface.upper().startswith(key_up):
+                    return val
 
         # 2. Mapping par Type exact
         tmap = self.cfg.get("type_to_subcategory", {})
