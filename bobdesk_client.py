@@ -208,8 +208,26 @@ class BobDeskClient:
             return {"element": {"_id": "DRY_RUN", **payload}}
         return self._request("POST", "/equipments", json=payload)
 
-    def set_equipment_image(self, equipment_id: str, image_path) -> bool:
-        """Upload une image sur un équipement via PUT _cover en base64. Retourne True si OK."""
+    def encode_image(self, image_path) -> str | None:
+        """Encode une image en data URI base64. Retourne None en cas d'erreur."""
+        import base64
+        from pathlib import Path as _Path
+        try:
+            path = _Path(image_path)
+            suffix = path.suffix.lower().lstrip(".")
+            mime = "image/jpeg" if suffix in ("jpg", "jpeg") else f"image/{suffix}"
+            with open(path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode()
+            return f"data:{mime};base64,{b64}"
+        except Exception as exc:
+            logger.debug("encode_image échoué: %s", exc)
+            return None
+
+    def set_equipment_image(self, equipment_id: str, image_path, preserve_fields: dict | None = None) -> bool:
+        """Upload une image sur un équipement via PUT _cover en base64.
+        preserve_fields : champs à inclure dans le PUT pour éviter que Bob! Desk
+        n'efface _category/_subcategory (le PUT est un remplacement complet).
+        Retourne True si OK."""
         import base64
         from pathlib import Path as _Path
         path = _Path(image_path)
@@ -219,7 +237,8 @@ class BobDeskClient:
             with open(path, "rb") as f:
                 b64 = base64.b64encode(f.read()).decode()
             data_uri = f"data:{mime};base64,{b64}"
-            self._request("PUT", f"/equipments/{equipment_id}", json={"_cover": data_uri})
+            put_payload = {**(preserve_fields or {}), "_cover": data_uri}
+            self._request("PUT", f"/equipments/{equipment_id}", json=put_payload)
             return True
         except Exception as exc:
             logger.debug("Upload image échoué pour %s : %s", equipment_id, exc)

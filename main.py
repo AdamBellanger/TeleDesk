@@ -145,22 +145,22 @@ def run_import(
             reporter.add(RowResult(idx, edn, type_, serial, "skipped_duplicate", dup_reason))
             continue
 
+        # Inclure l'image dans le payload de création (le PUT séparé efface _category/_subcategory)
+        if images_dir:
+            model = payload.get("model", type_)
+            img = find_image(model, images_dir)
+            if img:
+                cover = bob.encode_image(img)
+                if cover:
+                    payload["_cover"] = cover
+
         try:
             result = bob.create_equipment(payload)
             eq_id = str(result.get("element", {}).get("_id", ""))
             logger.info("Ligne %d (%s): créé id=%s", idx, edn, eq_id)
+            if payload.get("_cover"):
+                logger.info("Ligne %d (%s): image incluse dans la création", idx, edn)
             reporter.add(RowResult(idx, edn, type_, serial, "imported", equipment_id=eq_id))
-
-            # Upload image si dossier fourni et équipement réellement créé
-            if images_dir and eq_id and eq_id != "DRY_RUN":
-                model = payload.get("model", type_)
-                img = find_image(model, images_dir)
-                if img:
-                    ok = bob.set_equipment_image(eq_id, img)
-                    if ok:
-                        logger.info("Ligne %d (%s): image uploadée (%s)", idx, edn, img.name)
-                    else:
-                        logger.debug("Ligne %d (%s): upload image échoué", idx, edn)
         except BobDeskAPIError as exc:
             reason = f"Erreur API: {exc} | {exc.response_body}"
             logger.error("Ligne %d (%s): %s", idx, edn, reason)
