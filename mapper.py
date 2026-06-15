@@ -74,11 +74,16 @@ class AlcatelMapper:
         job_name = self.cfg["defaults"].get("job", "Telephonie")
         job_id = self.cfg.get("bobdesk_ids", {}).get("jobs", {}).get(job_name)
 
+        # Postes numériques (UA) : la colonne "ID" contient le numéro hardware, pas une MAC
+        # Le numéro matériel est également le hardware number — inutile à importer
+        interface = alcatel.get("interface", "").strip().upper()
+        is_ua = (interface == "UA")
+
         payload: dict = {
             "name":               name,
             "brand":              self.cfg["defaults"]["brand"],
             "model":              model,
-            "serial":             alcatel.get("numero_materiel") or "",
+            "serial":             "" if is_ua else (alcatel.get("numero_materiel") or ""),
             "description":        description,
             "_category": category["_id"],
         }
@@ -93,7 +98,7 @@ class AlcatelMapper:
         custom_fields = self.cfg.get("bobdesk_ids", {}).get("custom_fields", {})
         fields_values = []
         ip = alcatel.get("adresse_ip", "").strip()
-        mac = alcatel.get("mac_id", "").strip()
+        mac = "" if is_ua else alcatel.get("mac_id", "").strip()
 
         if ip and "Adresse IP" in custom_fields:
             fields_values.append({"_field": custom_fields["Adresse IP"], "value": ip})
@@ -117,10 +122,11 @@ class AlcatelMapper:
         type_val    = (alcatel.get("type") or "").strip()
         alcatel_cat = (alcatel.get("categorie") or "").strip()
 
-        # 1. Mapping par Interface (prioritaire)
+        # 1. Mapping par Interface (prioritaire) — insensible à la casse
         imap = self.cfg.get("interface_to_subcategory", {})
-        if interface and interface in imap:
-            return imap[interface]
+        imap_upper = {k.upper(): v for k, v in imap.items()}
+        if interface and interface.upper() in imap_upper:
+            return imap_upper[interface.upper()]
 
         # 2. Mapping par Type exact
         tmap = self.cfg.get("type_to_subcategory", {})
@@ -155,7 +161,7 @@ class AlcatelMapper:
                 return label
         match = re.match(r"^(\d{4})", type_val)
         if match:
-            return f"Alcatel {match.group(1)}"
+            return f"Alcatel {type_val}"  # Garde le suffixe complet (ex: 8039s, 4038 EE)
         return type_val or "Inconnu"
 
     def _build_name(self, alcatel: dict, model: str) -> str:

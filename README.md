@@ -148,6 +148,12 @@ Pour ajouter une photo : déposer le fichier image dans ce dossier, nommé d'apr
 
 ## Changelog
 
+### v3.2
+- Correction mapping Alcatel postes numériques (UA) : numéro matériel et ID hardware non importés dans serial/MAC
+- Correction nom de modèle : "8039s" affiché correctement au lieu de "8039"
+- Matching interface insensible à la casse
+- Ajout fallback type → Téléphone Numérique pour 8029, 8039, 8079
+
 ### v3.1
 - Correction mapping Alcatel : `IPDSP` (IP Desktop SoftPhone) correctement mappé en SoftPhone avec image
 - `Virtual Terminal` ignoré à l'import (non-mappable)
