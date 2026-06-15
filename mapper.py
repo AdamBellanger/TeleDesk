@@ -74,12 +74,21 @@ class AlcatelMapper:
         job_name = self.cfg["defaults"].get("job", "Telephonie")
         job_id = self.cfg.get("bobdesk_ids", {}).get("jobs", {}).get(job_name)
 
-        # Tous postes : ID = numéro de série, Numéro matériel = adresse MAC, pas d'IP
+        # Colonne "ID" détectée par contenu :
+        #   contient au moins 5 ":" → adresse MAC (ex: 00:08:7b:1f:4d:aa)
+        #   sinon → numéro de série (ex: FUM211904716)
+        # "Numéro matériel" ignoré dans tous les cas
+        id_val = alcatel.get("mac_id", "").strip()
+        id_is_mac = id_val.count(":") >= 5
+
+        serial_val = "" if id_is_mac else id_val
+        mac_val    = id_val if id_is_mac else ""
+
         payload: dict = {
             "name":        name,
             "brand":       self.cfg["defaults"]["brand"],
             "model":       model,
-            "serial":      alcatel.get("mac_id") or "",           # colonne "ID" = numéro de série
+            "serial":      serial_val,
             "description": description,
             "_category":   category["_id"],
         }
@@ -94,7 +103,7 @@ class AlcatelMapper:
         custom_fields = self.cfg.get("bobdesk_ids", {}).get("custom_fields", {})
         fields_values = []
         ip  = ""
-        mac = alcatel.get("numero_materiel", "").strip()          # Numéro matériel = adresse MAC
+        mac = mac_val
 
         if ip and "Adresse IP" in custom_fields:
             fields_values.append({"_field": custom_fields["Adresse IP"], "value": ip})
